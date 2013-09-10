@@ -63,24 +63,66 @@
             }
         }
 
-
+        //RECURSIVELY WALK CHILDREN FOR FORMATTING
         if(isset($parent['children'])) {
             $children = array();
 
+            //walk the children and do formatting.
             foreach($parent['children'] as $child) {
                 $children[] = walk($child);
             }
-
             $parent['children'] = $children;
         }
+
 
 
         return $parent;
     }
 
+    function nextPrev($children) {
+            $i = 0;
+            $c = count($children)-1;
+            foreach($children as $child) {
+                    if($i < $c) {
+                        $next = $children[$i+1];
+                        unset($next['children']);
+                        $children[$i]['next'] = $next;
+                    }
+
+                    if($i > 0) {
+                        $previous = $children[$i-1];
+                        unset($previous['children']);
+                        $children[$i]['previous'] = $previous;
+                    }
+
+                    //OMG am i really gonna recursively do this again?!
+                    if(isset($children[$i]['children'])) {
+                        //YUP!
+                        $children[$i]['children'] = nextPrev($children[$i]['children']);
+                    }
+
+                    
+                    $i++;    
+            }
+
+            return $children;
+    }
 
 
 
+    function prepData($parent) {
+
+        //walk the tree and format contet
+        $output = walk($parent);
+
+        //if the object has children, then add next and previous
+        if($output['children']) {
+            $output['children'] = nextPrev($output['children']);
+        }
+
+        return $output;
+
+    }
 
 
 
@@ -102,7 +144,7 @@
             $output[] = $item;
         endforeach;
 
-        $app->render(200,$output);
+        $app->render(200,array('data' => $output));
     });
 
     $app->get('/(:type)/overview', function($type) use ($app) {
@@ -113,15 +155,21 @@
             $output[] = $item;
         endforeach;
 
-        $app->render(200,$output);
+        $app->render(200,array('data' => $output));
     });
+
+
+/************************************
+    GUIDES
+************************************/
 
     $app->get('/(:type)/slug/(:slug)', function($type, $slug) use ($app) {
         $collection = getDB($type);
         
         $output = $collection->findOne(array("slug"=>$slug));
       
-        $app->render(200,$output);
+        $app->render(200,array('data' => $output));
+
 
     });
 
@@ -130,7 +178,7 @@
         
         $output = walk( $collection->findOne(array("slug"=>$slug)) );
 
-        $app->render(200,$output);
+        $app->render(200,array('data' => $output));
 
     });
 
@@ -140,8 +188,122 @@
         
         $output = $collection->findOne(array("_id"=>new MongoId($id)));
       
-        $app->render(200,$output);
+        $app->render(200,array('data' => $output));
     });
+
+
+/************************************
+    BOOK
+************************************/
+
+    $app->get('/(:type)/slug/(:slug)/(:bookSlug)', function($type, $slug, $bookSlug) use ($app) {
+        $collection = getDB($type);
+        
+        $guide = $collection->findOne(array("slug"=>$slug));
+
+        $book;
+        foreach($guide['children'] as $child) {
+            if($child['slug'] === $bookSlug) {
+                $book = $child;
+            }
+        }
+
+        $output = array(
+            'guide'=>$guide,
+            'book'=>$book
+        );
+        $app->render(200,array('data' => $output));
+
+
+    });
+
+    $app->get('/(:type)/slug/(:slug)/(:bookSlug)/markdown', function($type, $slug, $bookSlug) use ($app) {
+        $collection = getDB($type);
+        
+        $guide = prepData( $collection->findOne(array("slug"=>$slug)) );
+
+        $book;
+        foreach($guide['children'] as $child) {
+            if($child['slug'] === $bookSlug) {
+                $book = $child;
+            }
+        }
+
+        $output = array(
+            'guide'=>walk($guide),
+            'book'=>walk($book)
+        );
+        $app->render(200,array('data' => $output));
+
+
+    });
+
+
+
+/************************************
+    CHAPTER
+************************************/
+
+    $app->get('/(:type)/slug/(:slug)/(:bookSlug)/(:chapterSlug)', function($type, $slug, $bookSlug, $chapterSlug) use ($app) {
+        $collection = getDB($type);
+        
+        $guide = $collection->findOne(array("slug"=>$slug));
+
+        $book;
+        foreach($guide['children'] as $child) {
+            if($child['slug'] === $bookSlug) {
+                $book = $child;
+            }
+        }
+
+        $chapter;
+        foreach($book['children'] as $child) {
+            if($child['slug'] === $chapterSlug) {
+                $chapter = $child;
+            }
+        }
+
+        $output = array(
+            'guide'=>$guide,
+            'book'=>$book,
+            'chapter'=>$chapter
+        );
+        $app->render(200,array('data' => $output));
+
+
+    });
+
+    $app->get('/(:type)/slug/(:slug)/(:bookSlug)/(:chapterSlug)/markdown', function($type, $slug, $bookSlug, $chapterSlug) use ($app) {
+        $collection = getDB($type);
+        
+        $guide = prepData($collection->findOne(array("slug"=>$slug)));
+
+        $book;
+        foreach($guide['children'] as $child) {
+            if($child['slug'] === $bookSlug) {
+                $book = $child;
+            }
+        }
+
+        $chapter;
+        if($book['children'])
+        foreach($book['children'] as $child) {
+            if(isset($child['slug']) && $child['slug'] === $chapterSlug) {
+                $chapter = $child;
+            }
+        }
+
+        $output = array(
+            'guide'=>$guide,
+            'book'=>$book,
+            'chapter'=>$chapter
+        );
+
+        $app->render(200,array('data' => $output));
+
+
+    });
+
 
         $app->run();
 

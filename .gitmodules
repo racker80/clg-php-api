@@ -1,0 +1,3 @@
+[submodule "vendor/entomb/slim-json-api"]
+	path = vendor/entomb/slim-json-api
+	url = git://github.com/entomb/slim-json-api.git

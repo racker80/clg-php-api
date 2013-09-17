@@ -68,7 +68,9 @@
             $children = array();
 
             //walk the children and do formatting.
-            foreach($parent['children'] as $child) {
+            foreach($parent['children'] as $key=>$child) {
+                $child['index'] = $key+1;
+                $child['indexOf'] = count($parent['children']);
                 $children[] = walk($child);
             }
             $parent['children'] = $children;

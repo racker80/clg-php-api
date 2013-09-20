@@ -35,22 +35,27 @@
     }
 
 
-
-    //WALK THE TREE
-    function walk($parent) {
+    function setParentCode($parent) {
         //CREATE THE ACTION OVERVIEW
-        if(isset($parent['type']) && $parent['type'] === "chapter") {
-            if(isset($parent['children'])) {
+
+        if(isset($parent['type']) && $parent['type'] === "chapter" && isset($parent['children']) && !empty($parent['children'])) {
                 foreach($parent['children'] as $child) {
-                    if(isset($child['code'])) {
+                    
+                    if(isset($child['code']) && !empty($child['code'])) {
                         foreach($child['code'] as $code) {
                             $parent['code'][] = $code;
                         }
+                    } else {
+
                     }
+
                 }
-            }
         }
 
+        return $parent;
+    }
+
+    function setParentMarkdown($parent) {
         //FILTER CONTENT FOR CODE AND IMAGES AND MARKDOWN
         if(isset($parent['content'])) {
             $parent['content'] = filterContent($parent['content'], $parent);
@@ -62,7 +67,17 @@
                 $content['text'] = Markdown::defaultTransform($content['text']);
             }
         }
+        return $parent;
+    }
 
+
+    //WALK THE TREE
+    function walk($parent) {
+        
+        $parent = setParentCode($parent);
+
+        $parent = setParentMarkdown($parent);
+        
         //RECURSIVELY WALK CHILDREN FOR FORMATTING
         if(isset($parent['children'])) {
             $children = array();
@@ -84,16 +99,33 @@
     function nextPrev($children) {
             $i = 0;
             $c = count($children)-1;
+
             foreach($children as $child) {
+
+                if(isset($child['next']) || isset($child['previous'])) {
+                    next($children);
+                }
+
                     if($i < $c) {
                         $next = $children[$i+1];
-                        unset($next['children']);
+                        foreach($next as $key=>$value) {
+                            if(is_array($value)) {
+                                unset($next[$key]);
+                            }
+                            // unset($next['children']);
+
+                        }
                         $children[$i]['next'] = $next;
                     }
 
                     if($i > 0) {
                         $previous = $children[$i-1];
-                        unset($previous['children']);
+                        foreach($previous as $key=>$value) {
+                            if(is_array($value)) {
+                                unset($previous[$key]);
+                            }
+                            // unset($previous['children']);
+                        }
                         $children[$i]['previous'] = $previous;
                     }
 
@@ -125,6 +157,9 @@
         return $output;
 
     }
+
+
+
 
 
 
@@ -219,6 +254,8 @@
 
     });
 
+
+
     $app->get('/(:type)/slug/(:slug)/(:bookSlug)/markdown', function($type, $slug, $bookSlug) use ($app) {
         $collection = getDB($type);
         
@@ -232,14 +269,13 @@
         }
 
         $output = array(
-            'guide'=>walk($guide),
-            'book'=>walk($book)
+            'guide'=>$guide,
+            'book'=>$book
         );
         $app->render(200,array('data' => $output));
 
 
     });
-
 
 
 /************************************

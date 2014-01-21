@@ -1,0 +1,8 @@
+<?php
+
+	define("MONGO_HOST","mongodb://REDACTED");
+	define("MONGO_USER","REDACTED");
+	define("MONGO_PASS","REDACTED");
+
+
+?>

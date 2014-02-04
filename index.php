@@ -1,6 +1,5 @@
 <?php 
     require 'vendor/autoload.php';
-    require 'mongo.config.php';
     $app = new \Slim\Slim();
 
     $app->view(new \JsonApiView());
@@ -10,8 +9,8 @@
     use \Michelf\Markdown;
 
     function getDB($type) {
-        #$m = new MongoClient();
-	$m = new MongoClient(MONGO_HOST,array("username"=>MONGO_USER,"password"=>MONGO_PASS,"db"=>'clg'));
+        $m = new MongoClient();
+	#$m = new MongoClient(MONGO_HOST,array("username"=>MONGO_USER,"password"=>MONGO_PASS,"db"=>'clg'));
         $db = $m->selectDB('clg');
         $collection = new MongoCollection($db, $type);
 
